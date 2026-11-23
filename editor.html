@@ -3274,6 +3274,13 @@ function buildAd(network){
 'var tapCount=0,done=false,paused=false,phase=C.hasIntro?"intro":"game";\n'+
 'if(!C.starSteps||C.starSteps.length<2){var _n=C.starSteps&&C.starSteps[0]||5;C.starSteps=[];for(var _i=0;_i<=_n;_i++)C.starSteps.push(_i);}\n'+
 'var totalTaps=C.starSteps.length-1;\n'+
+'// AppLovin Playable Analytics: no-op where the SDK is absent (Unity, Facebook, Google, Mintegral, preview)\n'+
+'function trackAL(n){if(typeof window.ALPlayableAnalytics!=="undefined"){try{window.ALPlayableAnalytics.trackEvent(n);}catch(e){}}}\n'+
+'var _alStarted=false,_alSolved=false,_alEnd=false,_alPass={};\n'+
+'function alStart(){if(_alStarted)return;_alStarted=true;trackAL("CHALLENGE_STARTED");}\n'+
+'function alSolved(){if(_alSolved)return;_alSolved=true;trackAL("CHALLENGE_SOLVED");}\n'+
+'function alEndcard(){if(_alEnd)return;_alEnd=true;trackAL("ENDCARD_SHOWN");}\n'+
+'trackAL("DISPLAYED");\n'+
 'var starsEl=document.getElementById("stars");\n'+
 'var starsItems=document.querySelectorAll(".st");\n'+
 'var ui=document.getElementById("ui");\n'+
@@ -3330,8 +3337,8 @@ function buildAd(network){
 '      fg.style.display="";\n'+
 '    },400);\n'+
 '  }\n'+
-'  introOv.addEventListener("click",endIntro);\n'+
-'  introOv.addEventListener("touchend",function(e){e.preventDefault();endIntro();},false);\n'+
+'  introOv.addEventListener("click",function(){alStart();endIntro();});\n'+
+'  introOv.addEventListener("touchend",function(e){e.preventDefault();alStart();endIntro();},false);\n'+
 '}\n'+
 '\n'+
 'function snd(a){if(!a)return;try{a.currentTime=0;var p=a.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}\n'+
@@ -3370,13 +3377,13 @@ function buildAd(network){
 '}\n'+
 '\n'+
 'function fireCliffhanger(){\n'+
-'  done=true;\n'+
+'  done=true;alSolved();\n'+
 '  fg.style.display="none";\n'+
 '  hint.style.opacity="0";\n'+
 '  snd(_lsA);\n'+
 '  if(C.fl){fl.classList.add("flashing");setTimeout(function(){fl.classList.remove("flashing");},520);}\n'+
 '  setTimeout(function(){\n'+
-'    cta.classList.add("vis");\n'+
+'    cta.classList.add("vis");alEndcard();\n'+
 '    if(scEl){scEl.classList.add("vis");scEl.classList.add("sc-upgraded");}\n'+
 '    setTimeout(function(){cta.classList.add("pulse");},400);\n'+
 '  },600);\n'+
@@ -3390,7 +3397,7 @@ function buildAd(network){
 '}\n'+
 '\n'+
 'function transform(){\n'+
-'  done=true;\n'+
+'  done=true;alSolved();\n'+
 '  fg.style.display="none";\n'+
 '  hint.style.opacity="0";\n'+
 '  var fillTo=C.starSteps[C.starSteps.length-1];\n'+
@@ -3405,10 +3412,10 @@ function buildAd(network){
 '      var outroOv=document.getElementById("outro-ov");\n'+
 '      outroOv.style.transition="opacity 0.7s";\n'+
 '      outroOv.style.opacity="1";\n'+
-'      setTimeout(function(){cta.classList.add("vis");if(scEl){scEl.classList.add("vis");scEl.classList.add("sc-upgraded");}if(C.gp){var gpEl=document.getElementById("gp");if(gpEl){setTimeout(function(){gpEl.classList.add("vis");},300);}}setTimeout(function(){cta.classList.add("pulse");},600);},700);\n'+
+'      setTimeout(function(){cta.classList.add("vis");alEndcard();if(scEl){scEl.classList.add("vis");scEl.classList.add("sc-upgraded");}if(C.gp){var gpEl=document.getElementById("gp");if(gpEl){setTimeout(function(){gpEl.classList.add("vis");},300);}}setTimeout(function(){cta.classList.add("pulse");},600);},700);\n'+
 '    },1600);\n'+
 '  } else {\n'+
-'    setTimeout(function(){cta.classList.add("vis");if(scEl){scEl.classList.add("vis");scEl.classList.add("sc-upgraded");}if(C.gp){var gpEl=document.getElementById("gp");if(gpEl){setTimeout(function(){gpEl.classList.add("vis");},300);}}setTimeout(function(){cta.classList.add("pulse");},600);},2000);\n'+
+'    setTimeout(function(){cta.classList.add("vis");alEndcard();if(scEl){scEl.classList.add("vis");scEl.classList.add("sc-upgraded");}if(C.gp){var gpEl=document.getElementById("gp");if(gpEl){setTimeout(function(){gpEl.classList.add("vis");},300);}}setTimeout(function(){cta.classList.add("pulse");},600);},2000);\n'+
 '  }\n'+
 '}\n'+
 '\n'+
@@ -3429,10 +3436,13 @@ function buildAd(network){
 '  });\n'+
 '}\n'+
 'function doTap(){\n'+
+'  alStart();\n'+
 '  if(tapCount===0)fg.style.display="none";\n'+
 '  snd(_csA);ripple();\n'+
 '  var prev=C.starSteps[tapCount];\n'+
 '  tapCount++;\n'+
+'  // progress beats by share of taps; the last tap is the reveal (CHALLENGE_SOLVED), not a beat\n'+
+'  if(tapCount<totalTaps){[25,50,75].forEach(function(p){if(tapCount*100>=p*totalTaps&&!_alPass[p]){_alPass[p]=1;trackAL("CHALLENGE_PASS_"+p);}});}\n'+
 '  var next=C.starSteps[tapCount];\n'+
 '  var fillCount=next-prev;\n'+
 '  for(var _i=prev;_i<next;_i++){\n'+
@@ -3459,7 +3469,7 @@ function buildAd(network){
 '  }\n'+
 '}\n'+
 '\n'+
-'cta.addEventListener("click",function(e){e.stopPropagation();'+ctaAction+';});\n'+
+'cta.addEventListener("click",function(e){e.stopPropagation();trackAL("CTA_CLICKED");'+ctaAction+';});\n'+
 'window._gamePause=function(){paused=true;if(_ambA)_ambA.pause();};\n'+
 'window._gameResume=function(){paused=false;if(_ambA&&_ambStarted){var p=_ambA.play();if(p&&p.catch)p.catch(function(){});}};\n'+
 'document.addEventListener("visibilitychange",function(){if(document.hidden){paused=true;if(_ambA)_ambA.pause();}else{paused=false;if(_ambA&&_ambStarted){var p=_ambA.play();if(p&&p.catch)p.catch(function(){});}}});\n';
